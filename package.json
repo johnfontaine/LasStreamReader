@@ -1,0 +1,36 @@
+{
+  "name": "jslastools",
+  "version": "1.0.0",
+  "description": "Library to manipulate LIDAR data in LAZ and LAS format",
+  "main": "lasreader.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnfontaine/jslastools.git"
+  },
+  "keywords": [
+    "LIDAR",
+    "LAS",
+    "LAZ"
+  ],
+  "author": "John Fontaine",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/johnfontaine/jslastools/issues"
+  },
+  "homepage": "https://github.com/johnfontaine/jslastools#readme",
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "chai-eventemitter": "^1.1.1",
+    "mocha": "^3.0.2",
+    "nodeunit": "^0.9.1",
+    "sinon": "^1.17.5"
+  },
+  "dependencies": {
+    "int64-buffer": "^0.1.9",
+    "proj4": "^2.3.14",
+    "request": "^2.74.0"
+  }
+}
