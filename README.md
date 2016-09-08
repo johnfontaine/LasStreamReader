@@ -100,6 +100,7 @@ The ReadableStream sends an array of PointRecords as it reads through the chunks
 
 ###Header
 See LAS specification for more details
+
 ####Properties
 These map to the
 * file_signature
@@ -122,12 +123,14 @@ These map to the
 * scale -- array (xyz)
 * offset -- array (xyz)
 * max_min -- array of array (xyz) (maximum, minimum)
+
 ####Methods
 * is_gps_time_type() -- returns true if points will have gps time
 * is_return_numbers_synthetic() -- returns true if this data has synthetic return numbers
 
 
 ###VariableLengthRecordHeader
+
 ####Properties
 * reserved
 * user_id
@@ -157,8 +160,10 @@ These map to the
 
 
 ###Projection
+
 ####Properties
-.epsg_datum : the epsg code that defines the datum for this projection
-.epsg_code : the raw string used to initialize proj4
+* epsg_datum : the epsg code that defines the datum for this projection
+* epsg_code : the raw string used to initialize proj4
+
 ####Methods
-.convert_to_wgs84 -- a function used internally to convert the cartesian coordinates to latitude and longitude.
+* convert_to_wgs84 -- a function used internally to convert the cartesian coordinates to latitude and longitude.
