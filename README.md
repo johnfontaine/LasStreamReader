@@ -105,7 +105,7 @@ These map to the
 * file_signature
 * file_source_id
 * global_encoding
-* project_id_guid_data - array[4] of the GUID data
+* project_id_guid_data - array of the GUID data
 * version.major
 * version.minor
 * system_identifier
@@ -118,10 +118,10 @@ These map to the
 * point_data_record.format
 * point_data_record.length
 * points.number_of_points
-* points.points_x_return - array[5] of points by return
-* scale -- array[3] (xyz)
-* offset -- array[3] (xyz)
-* max_min -- array[2] of array[3] (xyz) [maximum, minimum]
+* points.points_x_return - array of points by return
+* scale -- array (xyz)
+* offset -- array (xyz)
+* max_min -- array of array (xyz) (maximum, minimum)
 ####Methods
 * is_gps_time_type() -- returns true if points will have gps time
 * is_return_numbers_synthetic() -- returns true if this data has synthetic return numbers
