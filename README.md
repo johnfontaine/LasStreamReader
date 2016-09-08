@@ -18,7 +18,7 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 
 ```
 const fs = require("fs");
-const las = require('las');
+const las = require('LasStreamReader');
 const lasStream = new las.LasStream(options);
 
 /* Handle Events  */

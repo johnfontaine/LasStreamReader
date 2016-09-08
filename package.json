@@ -1,8 +1,8 @@
 {
   "name": "LasStreamReader",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Library to read LAS formatted lidar datafiles",
-  "main": "las.js",
+  "main": "src/las.js",
   "scripts": {
     "test": "mocha tests"
   },
