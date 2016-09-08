@@ -12,7 +12,7 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 ##Versions
 
 * Version 1.0 Sept 3, 2016
-.* Initial version focused on support for LAS 1.2 files provided by the USGS and US Coast Guard. Note currently expects vertical and horizontal measurements in meters.
+* Initial version focused on support for LAS 1.2 files provided by the USGS and US Coast Guard. Note currently expects vertical and horizontal measurements in meters.
 
 ##Usage
 
@@ -81,7 +81,7 @@ Emitted when a error occurs.
 
 Emitted when LasStreamReader finishes reading the header data for the las file.  Provides a Header object.
 
-##onParseVLR
+###onParseVLR
 
 Emitted when LasStreamReader completes parsing of the variable length records.  Returns an array of VariableLengthRecord objects
 
@@ -89,7 +89,7 @@ Emitted when LasStreamReader completes parsing of the variable length records.  
 
 When a projection is not provided in the constructor, LasStreamReader will attempt to identify the correct projection using the variable length records.  This event fires when that determination is made and provides a Projection object.
 
-##onFinishedReadingRecords
+###onFinishedReadingRecords
 
 When LasStreamReader has parsed all PointRecords this event will fire with a count of records parsed.
 
@@ -102,58 +102,58 @@ The ReadableStream sends an array of PointRecords as it reads through the chunks
 See LAS specification for more details
 ####Properties
 These map to the
-.file_signature
-.file_source_id
-.global_encoding
-.project_id_guid_data - array[4] of the GUID data
-.version.major
-.version.minor
-.system_identifier
-.generating_software
-.file_creation.day_of_year
-.file_creation.year
-.header_size
-.offset_to_point_data
-.number_of_variable_length_records
-.point_data_record.format
-.point_data_record.length
-.points.number_of_points
-.points.points_x_return - array[5] of points by return
-.scale -- array[3] (xyz)
-.offset -- array[3] (xyz)
-.max_min -- array[2] of array[3] (xyz) [maximum, minimum]
+* file_signature
+* file_source_id
+* global_encoding
+* project_id_guid_data - array[4] of the GUID data
+* version.major
+* version.minor
+* system_identifier
+* generating_software
+* file_creation.day_of_year
+* file_creation.year
+* header_size
+* offset_to_point_data
+* number_of_variable_length_records
+* point_data_record.format
+* point_data_record.length
+* points.number_of_points
+* points.points_x_return - array[5] of points by return
+* scale -- array[3] (xyz)
+* offset -- array[3] (xyz)
+* max_min -- array[2] of array[3] (xyz) [maximum, minimum]
 ####Methods
-.is_gps_time_type() -- returns true if points will have gps time
-.is_return_numbers_synthetic() -- returns true if this data has synthetic return numbers
+* is_gps_time_type() -- returns true if points will have gps time
+* is_return_numbers_synthetic() -- returns true if this data has synthetic return numbers
 
 
 ###VariableLengthRecordHeader
 ####Properties
-.reserved
-.user_id
-.record_id
-.length_after_header
-.description
-.record_length
-.data -- if there is extra data this is provided as a Buffer
+* reserved
+* user_id
+* record_id
+* length_after_header
+* description
+* record_length
+* data -- if there is extra data this is provided as a Buffer
 
 ###PointRecord
 
 ####Properties
-.raw -- an array[3] (xyz)point_source_id of the unscaled, not offset integers
-.scaled -- an array[3] (xyz) of floats computed with the offset and scale for the raw points
-.this.lng_lat -- an array[2] (longitude, latitude) of floats for the WGS84 coordinates
-.intensity
-.return_number
-.number_of_returns
-.edge_of_flight_line
-.classification
-.is_synthetic
-.is_key_point
-.is_withheld
-.scan_angle_rank
-.user_data
-.point_source_id
+* raw -- an array[3] (xyz)point_source_id of the unscaled, not offset integers
+* scaled -- an array[3] (xyz) of floats computed with the offset and scale for the raw points
+* this.lng_lat -- an array[2] (longitude, latitude) of floats for the WGS84 coordinates
+* intensity
+* return_number
+* number_of_returns
+* edge_of_flight_line
+* classification
+* is_synthetic
+* is_key_point
+* is_withheld
+* scan_angle_rank
+* user_data
+* point_source_id
 
 
 ###Projection
