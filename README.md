@@ -143,9 +143,9 @@ These map to the
 ###PointRecord
 
 ####Properties
-* raw -- an array[3] (xyz)point_source_id of the unscaled, not offset integers
-* scaled -- an array[3] (xyz) of floats computed with the offset and scale for the raw points
-* this.lng_lat -- an array[2] (longitude, latitude) of floats for the WGS84 coordinates
+* raw -- an array (xyz) of the unscaled integers
+* scaled -- an array (xyz) of floats computed with the offset and scale for the raw points
+* this.lng_lat -- an array (longitude, latitude) of floats for the WGS84 coordinates
 * intensity
 * return_number
 * number_of_returns
