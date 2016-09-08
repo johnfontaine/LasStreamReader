@@ -4,8 +4,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const Writable = require("stream").Writable;
 const fs = require("fs");
-var lasStream = new las.LasStream();
-var rs = fs.createReadStream("tests/sample_data/Barrow_SeaIce_May7_2008.laz", {autoClose : true});
+const lasStream = new las.LasStreamReader();
+const rs = fs.createReadStream("tests/sample_data/Barrow_SeaIce_May7_2008.laz", {autoClose : true});
 describe("partially parse LAZ data and error", () => {
     it('should find LASF at start of header', ()=> {
         lasStream.on("onParseHeader", (header)=>{
@@ -34,7 +34,7 @@ class TestWritable extends Writable {
   }
   _write(chunk, encoding, callback) {
      if (Array.isArray(chunk)) {
-         for (var point_record of chunk) {
+         for (let point_record of chunk) {
              if (point_record.lat_lng) {
                 // console.log(x++, point_record.lat_lng, point_record.scaled, point_record.raw);
              }

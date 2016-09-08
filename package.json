@@ -1,14 +1,14 @@
 {
-  "name": "jslastools",
+  "name": "LasStreamReader",
   "version": "1.0.0",
-  "description": "Library to manipulate LIDAR data in LAZ and LAS format",
-  "main": "lasreader.js",
+  "description": "Library to read LAS formatted lidar datafiles",
+  "main": "las.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha tests"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnfontaine/jslastools.git"
+    "url": "git+https://github.com/johnfontaine/LasStreamReader.git"
   },
   "keywords": [
     "LIDAR",
@@ -18,9 +18,9 @@
   "author": "John Fontaine",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/johnfontaine/jslastools/issues"
+    "url": "https://github.com/johnfontaine/LasStreamReader/issues"
   },
-  "homepage": "https://github.com/johnfontaine/jslastools#readme",
+  "homepage": "https://github.com/johnfontaine/LasStreamReader#readme",
   "devDependencies": {
     "chai": "^3.5.0",
     "chai-eventemitter": "^1.1.1",

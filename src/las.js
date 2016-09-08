@@ -7,7 +7,7 @@ const proj4 = require("proj4");
 const stream = require('stream');
 const util = require('util');
 
-class LasStream extends stream.Transform {
+class LasStreamReader extends stream.Transform {
     constructor(options) {
         super({readableObjectMode : true});
         this.point_record_options = {};
@@ -24,19 +24,29 @@ class LasStream extends stream.Transform {
         this.check_classification_lookup = false;
         this.has_classification_lookup_table = false;
         if (options) {
-            this.point_record_options.transform_latlng = options.transform_latlng === false ? false : true; // raw | scaled | wgs
+            this.point_record_options.transform_lnglat = options.transform_lnglat === false ? false : true; // raw | scaled | wgs
             this.point_record_options.parse_full_point_record = options.parse_full_point_record || false;
             if (options.filter) {
                 //include a filter;;
             }
+            if (options.projection && options.projection.epsg_datum) {
+                let epsg_code = epsg[String(options.projection.epsg_datum)];
+                this.projection = {
+                    epsg_datum :  options.projection.epsg_datum,
+                    epsg_code : epsg_code,
+                    convert_to_wgs84 : new proj4(epsg_code, proj4.defs('EPSG:4326'))
+                };
+                //igore VLR projection data and use this one instead.
+                this.got_projection = true;
+            }
         }
     }
     _transform(data, encoding, callback) {
-        var size = data.length;
-        var records = [];
+        let size = data.length;
+        let records = [];
         this.bytes_read += size;
-        var chunk_start = this.bytes_read - size;
-        var total = this.bytes_read;
+        let chunk_start = this.bytes_read - size;
+        let total = this.bytes_read;
         if (!this.read_header) {
             this._do_read_header(data, chunk_start);
         }
@@ -63,8 +73,8 @@ class LasStream extends stream.Transform {
         this.header_bytes_read = fill_to_buffer(data, this.header_buffer, this.header_bytes_read);
         if (this.header_bytes_read === 400) {
             this.header = new models.Header(data.buffer);
-            var offset = this.header.header_size;
-            var start_point_data = this.header.offset_to_point_data;
+            let offset = this.header.header_size;
+            let start_point_data = this.header.offset_to_point_data;
             this.vlr_buffer = new Buffer.alloc(parseInt(start_point_data) - parseInt(offset));
             this.vlr_bytes_read = 0;
             this.read_header = true;
@@ -79,24 +89,24 @@ class LasStream extends stream.Transform {
         } else {
             this.vlr_bytes_read = fill_to_buffer(data, this.vlr_buffer, this.vlr_bytes_read);
         }
-        var vlr_remain =  this.vlr_buffer.length - this.vlr_bytes_read;
+        let vlr_remain =  this.vlr_buffer.length - this.vlr_bytes_read;
         if (vlr_remain === 0) {
             //console.log("getting variable length records",this.header.number_of_variable_length_records);
             this.vlr = [];
-            var last_vlr_offset = 0;
-            for (var i = 0; i < this.header.number_of_variable_length_records; i++) {
+            let last_vlr_offset = 0;
+            for (let i = 0; i < this.header.number_of_variable_length_records; i++) {
             //    console.log("last_vlr_offset is", last_vlr_offset);
-                var d = this.vlr_buffer.buffer.slice(last_vlr_offset);
+                let d = this.vlr_buffer.buffer.slice(last_vlr_offset);
                 //console.log(d.toString('utf8', 0, d.length));
                 //console.log(d);
-                var vlr = new models.VariableLengthRecordHeader(d);
+                let vlr = new models.VariableLengthRecordHeader(d);
 
                 last_vlr_offset += vlr.record_length;
                 this.vlr.push(vlr);
             }
             this.read_vlr = true;
             if (!this.check_laz) {
-                var laz_vlr = this.vlr[this.vlr.length-1];
+                let laz_vlr = this.vlr[this.vlr.length-1];
                 this.is_laz = laz_vlr.user_id === 'laszip encoded';
                 this.check_laz = true;
                 if (this.is_laz) {
@@ -117,33 +127,33 @@ class LasStream extends stream.Transform {
         }
     }
     _do_read_records(data, chunk_start, callback) {
-        var local_buffer;
-        var rec_size = this.header.point_data_record.length;
+        let local_buffer;
+        let rec_size = this.header.point_data_record.length;
         if (chunk_start < this.header.offset_to_point_data) {
             local_buffer = data.buffer.slice(this.header.offset_to_point_data);
         } else {
             if (this.save_buffer) {
-                var tmp_buffer = Buffer.concat([Buffer.from(this.save_buffer), data]);
+                let tmp_buffer = Buffer.concat([Buffer.from(this.save_buffer), data]);
                 local_buffer = tmp_buffer.buffer;
             } else {
                 local_buffer = data.buffer;
             }
         }
-        var remainder = local_buffer.byteLength % rec_size;
-        var end = local_buffer.byteLength-remainder;
-        var proc_buffer = local_buffer.slice(0, end);
+        let remainder = local_buffer.byteLength % rec_size;
+        let end = local_buffer.byteLength-remainder;
+        let proc_buffer = local_buffer.slice(0, end);
         this.points_data_read += proc_buffer.byteLength;
         if (remainder) {
             this.save_buffer = local_buffer.slice(end);
         } else {
             this.save_buffer = null;
         }
-        var num_records = parseInt(proc_buffer.byteLength / rec_size);
+        let num_records = parseInt(proc_buffer.byteLength / rec_size);
         //console.log(`getting ${num_records} records from chunk`);
-        var records = [];
-        for (var i = 0; i < num_records; i++) {
-            var start_rec = i * rec_size;
-            var end_rec = (i + 1) * rec_size;
+        let records = [];
+        for (let i = 0; i < num_records; i++) {
+            let start_rec = i * rec_size;
+            let end_rec = (i + 1) * rec_size;
             records.push(
                 new models.PointRecord(proc_buffer.slice(start_rec,end_rec), this.header, this.point_record_options, this.projection)
             );
@@ -158,7 +168,7 @@ class LasStream extends stream.Transform {
 }
 
 function fill_to_buffer(in_buffer, fill_buffer, filled) {
-    var remain = fill_buffer.length - filled;
+    let remain = fill_buffer.length - filled;
     if (in_buffer.length >= remain) {
         fill_buffer.fill(in_buffer.slice(0, remain), filled);
         filled += remain;
@@ -170,7 +180,7 @@ function fill_to_buffer(in_buffer, fill_buffer, filled) {
 }
 
 function computeProjection(records) {
-    for (var record of records) {
+    for (let record of records) {
         if (record.is_projection()) {
             switch(Number(record.record_id)) {
                 case 2111:
@@ -189,7 +199,7 @@ function computeProjection(records) {
 
 }
 function check_classification_lookup(self) {
-    for (var vlr of self.vlr) {
+    for (let vlr of self.vlr) {
         if (vlr.record_id === 0 && vlr.user_id === 'LASF_Spec') {
             self.classification_table = new models.ClassificationTable(vlr.data);
         }
@@ -198,16 +208,16 @@ function check_classification_lookup(self) {
 }
 function computeProjectionWithGeoTag(record) {
 //    console.log("record is", record);
-    var projection = {convert_to_wgs84 : null};
-    var geokey = new models.GeoKey(record.data);
+    let projection = {convert_to_wgs84 : null};
+    let geokey = new models.GeoKey(record.data);
     projection.geokey = geokey;
 //    console.log("geokey", geokey);
     //get the EPSG code held in key 3072 or throw an error because this file lacks common decency.
     //See http://gis.stackexchange.com/questions/173111/converting-geotiff-projection-definition-to-proj4
     //todo: other projection options.
     //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1
-    var epsg_code;
-    for (var key of geokey.keys) {
+    let epsg_code;
+    for (let key of geokey.keys) {
     //    console.log(`${key.wKeyId}\n\t`, JSON.stringify(key));
         if (Number(key.wKeyId) === 1024) {
 
@@ -228,7 +238,7 @@ function computeProjectionWithGeoTag(record) {
                 projection.epsg_proj4 = epsg_code;
                 projection.convert_to_wgs84 = new proj4(epsg_code, proj4.defs('EPSG:4326')); //to
             } else {
-                var offset = key.wValue_Offset;
+                let offset = key.wValue_Offset;
                 throw new Error(`unable to compute projection for epsg code ${offset}`);
             }
         }
@@ -256,5 +266,5 @@ function computeProjectionWithGeoTag(record) {
 
 module.exports = {
     models : models,
-    LasStream : LasStream
+    LasStreamReader : LasStreamReader
 };

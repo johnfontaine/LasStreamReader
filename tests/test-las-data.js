@@ -4,8 +4,8 @@ const chai = require('chai');
 const expect = chai.expect;
 const Writable = require("stream").Writable;
 const fs = require("fs");
-var x= 0;
-var lasStream = new las.LasStream();
+let x= 0;
+let lasStream = new las.LasStreamReader();
 describe("parse las file", ()=> {
 
     lasStream.on("error", (error)=> {
@@ -47,7 +47,7 @@ class TestWritable extends Writable {
   }
   _write(chunk, encoding, callback) {
      if (Array.isArray(chunk)) {
-         for (var point_record of chunk) {
+         for (let point_record of chunk) {
              if (point_record.lat_lng) {
                 // console.log(x++, point_record.lat_lng, point_record.scaled, point_record.raw);
              }
@@ -60,5 +60,5 @@ class TestWritable extends Writable {
   }
 }
 
-var rs = fs.createReadStream("tests/sample_data/Haystack_Rock.las", {autoClose : true});
+const rs = fs.createReadStream("tests/sample_data/Haystack_Rock.las", {autoClose : true});
 rs.pipe(lasStream).pipe(new TestWritable());

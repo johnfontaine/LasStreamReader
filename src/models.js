@@ -1,11 +1,11 @@
 /*jshint esversion: 6*/
-var Uint64LE = require("int64-buffer").Uint64LE;
-var Int64LE = require("int64-buffer").Int64LE;
+const Uint64LE = require("int64-buffer").Uint64LE;
+const Int64LE = require("int64-buffer").Int64LE;
 function get_char_array(buffer, offset, length) {
-    var array = new Uint8Array(buffer, offset, length);
-    var data = "";
-    for (var x of array) {
-        var code = String.fromCharCode(x);
+    let array = new Uint8Array(buffer, offset, length);
+    let data = "";
+    for (let x of array) {
+        let code = String.fromCharCode(x);
         if (code != '\u0000') {
             data = data + code;
         }
@@ -15,8 +15,8 @@ function get_char_array(buffer, offset, length) {
 }
 
 function Header(buffer) {
-    var dataView = new DataView(buffer);
-    var position = 0;
+    let dataView = new DataView(buffer);
+    let position = 0;
     this.file_signature = get_char_array(buffer, 0, 4);
     position += 4;
     this.file_source_id = dataView.getUint16(position, true);
@@ -57,7 +57,7 @@ function Header(buffer) {
     this.point_data_record.length = dataView.getUint16(position, true);
     position += 2;
     if (this.version.major == 1) {
-           var points = {};
+           let points = {};
            points.number_of_points = dataView.getUint32(position,true);
            position += 4;
            points.points_x_return = [
@@ -119,7 +119,7 @@ function Header(buffer) {
             points_x_return : []
         };
         position += 8;
-        for (var i = 0; i < 15; i++) {
+        for (let i = 0; i < 15; i++) {
             this.points.points_x_return.push(new Uint64LE(buffer.slice(position, position+8)));
             position += 8;
         }
@@ -143,8 +143,8 @@ Header.prototype.is_wkt = function() {
 };
 
 function VariableLengthRecordHeader(buffer) {
-    var dataView = new DataView(buffer);
-    var position = 0;
+    let dataView = new DataView(buffer);
+    let position = 0;
     this.reserved = dataView.getUint16(position, true);
     position += 2;
     this.user_id = get_char_array(buffer, position, 16);
@@ -172,8 +172,8 @@ VariableLengthRecordHeader.prototype.is_extra_bytes = function() {
 };
 
 function GeoKey(buffer) {
-    var dataView = new DataView(buffer);
-    var position = 0;
+    let dataView = new DataView(buffer);
+    let position = 0;
     this.wKeyDirectoryVersion = dataView.getUint16(position, true);
     position += 2;
     this.wKeyRevision = dataView.getUint16(position, true);
@@ -183,8 +183,8 @@ function GeoKey(buffer) {
     this.wNumberOfKeys = Number(dataView.getUint16(position, true));
     position += 2;
     this.keys = [];
-    for (var i = 0; i < this.wNumberOfKeys; i++) {
-        var key = {};
+    for (let i = 0; i < this.wNumberOfKeys; i++) {
+        let key = {};
         key.wKeyId = dataView.getUint16(position, true);
         position += 2;
         key.wTIFFTagLocation  = dataView.getUint16(position, true);
@@ -202,7 +202,7 @@ function computeScaled(item, scale, offset) {
 }
 
 function PointRecord(buffer, header, point_record_options, projection) {
-    var dataView = new DataView(buffer);
+    let dataView = new DataView(buffer);
     this.raw = [
         dataView.getInt32(0, true),
         dataView.getInt32(4, true),
@@ -213,20 +213,20 @@ function PointRecord(buffer, header, point_record_options, projection) {
         computeScaled(this.raw[1], header.scale[1], header.offset[1]),
         computeScaled(this.raw[2], header.scale[2], header.offset[2]),
     ];
-    if (point_record_options.transform_latlng && projection.convert_to_wgs84) {
-        this.lat_lng = projection.convert_to_wgs84.forward(this.scaled.slice(0,2));
+    if (point_record_options.transform_lnglat && projection.convert_to_wgs84) {
+        this.lng_lat = projection.convert_to_wgs84.forward(this.scaled.slice(0,2));
     }
 
-    var position = 12;
+    let position = 12;
     this.intensity = dataView.getUint16(position);
     position +=2;
-    var bit = dataView.getInt8(position);
+    let bit = dataView.getInt8(position);
     this.return_number = bit >> 5;
     this.number_of_returns = ( bit << 3 ) >> 5;
     this.scan_direction_flag = bit & 2;
     this.edge_of_flight_line = bit & 1;
     position +=1;
-    var classification = dataView.getInt8(position);
+    let classification = dataView.getInt8(position);
 
     this.classification = classification << 4;
     this.is_synthetic = classification & ( 1 << 3 );
@@ -253,16 +253,16 @@ const LASZIP_COMPRESSOR_POINTWISE_CHUNKED = 2;
 const LASZIP_COMPRESSOR_TOTAL_NUMBER_OF = 3;
 
 function LazPointRecord(buffer, header, point_record_options, projection, last_record, laz_info) {
-    var dataView = new DataView(buffer);
+    let dataView = new DataView(buffer);
 
 }
 function ClassificationTable(buffer) {
-    var dataView = new DataView(buffer);
-    var position = 0;
-    for (var i = 0; i < 255; i++) {
+    let dataView = new DataView(buffer);
+    let position = 0;
+    for (let i = 0; i < 255; i++) {
         position = i * 16;
-        var classNumber = dataView.getUint8(position);
-        var description = get_char_array(buffer, position+1, 15);
+        let classNumber = dataView.getUint8(position);
+        let description = get_char_array(buffer, position+1, 15);
         this[String(classNumber)] = description;
     }
     console.log(this);
@@ -284,8 +284,8 @@ function ClassificationTable(buffer) {
 //        U16 version             2 bytes * num_items
 
 function LazZipVlr(buffer) {
-  var dataView = new DataView(buffer);
-  var position = 0;
+  let dataView = new DataView(buffer);
+  let position = 0;
   this.compressor = dataView.getUint16(position, true);
   position += 2;
   this.coder = dataView.getUint16(position, true);
@@ -308,8 +308,8 @@ function LazZipVlr(buffer) {
   this.num_items = dataView.getUint16(position, true);
   position += 2;
   this.items = [];
-  for (var i = 0; i < this.num_items; i++ ) {
-      var item = {};
+  for (let i = 0; i < this.num_items; i++ ) {
+      let item = {};
       item.type = dataView.getUint16(dataView, position);
       position +=2;
       item.size = dataView.getUint16(dataView, position);
