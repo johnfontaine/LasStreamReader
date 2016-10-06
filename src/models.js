@@ -1,4 +1,5 @@
 /*jshint esversion: 6*/
+"use strict"
 const Uint64LE = require("int64-buffer").Uint64LE;
 const Int64LE = require("int64-buffer").Int64LE;
 function get_char_array(buffer, offset, length) {
