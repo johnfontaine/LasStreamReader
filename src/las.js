@@ -179,7 +179,7 @@ function fill_to_buffer(in_buffer, fill_buffer, filled) {
     return filled;
 }
 
-function computeProjection(records) {
+function computeProjection(records) { //variable length records
     for (let record of records) {
         if (record.is_projection()) {
             switch(Number(record.record_id)) {
@@ -191,7 +191,7 @@ function computeProjection(records) {
                     //throw new Error("OGC COORDINATE SYSTEM WKT record not supported");
                     break;
                 case 34735:
-                    return computeProjectionWithGeoTag(record);
+                    return computeProjectionWithGeoTag(record, records);
                     //GEOTiff
             }
         }
@@ -206,7 +206,7 @@ function check_classification_lookup(self) {
     }
     self.check_classification_lookup = true;
 }
-function computeProjectionWithGeoTag(record) {
+function computeProjectionWithGeoTag(record,records) {
 //    console.log("record is", record);
     let projection = {convert_to_wgs84 : null};
     let geokey = new models.GeoKey(record.data);
@@ -218,12 +218,13 @@ function computeProjectionWithGeoTag(record) {
     //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1
     let epsg_code;
     for (let key of geokey.keys) {
+        let keyId = Number(key.wKeyId);
     //    console.log(`${key.wKeyId}\n\t`, JSON.stringify(key));
-        if (Number(key.wKeyId) === 1024) {
+        if (keyId === 1024) {
 
         //    console.log("Model type key", key.wValue_Offset);
         }
-        if (Number(key.wKeyId) === 2048) {
+        if (keyId === 2048) {
             if (key.wValue_Offset == 4326) {
                 epsg_code = epsg[String(4326)];
                 projection.epsg_datum = "EPSG:4326";
@@ -231,7 +232,7 @@ function computeProjectionWithGeoTag(record) {
                 projection.convert_to_wgs84 = new proj4(epsg_code, proj4.defs('EPSG:4326'));
             }
         }
-        if (Number(key.wKeyId) === 3072) {
+        if (keyId === 3072) {
             epsg_code = epsg[String(key.wValue_Offset)];
             if (epsg_code && epsg_code !== "unknown") {
                 projection.epsg_datum = String(key.wValue_Offset);
@@ -242,18 +243,20 @@ function computeProjectionWithGeoTag(record) {
                 throw new Error(`unable to compute projection for epsg code ${offset}`);
             }
         }
-        if (Number(key.wKeyId) === 3076) {  //linearUnits key
+        if (keyId === 3076) {  //linearUnits key
             projection.linear_unit_key = String(key.wValue_Offset);
         }
 
         //VerticalCSTypeGeoKey
         //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.4.1
-        if (Number(key.wKeyId)=== 4096) {
+        if (keyId === 4096) {
             projection.epsg_vertical_datum = key.wValue_Offset;
         }
-        if (Number(key.wKeyId) == 4099) {
+        if (keyId === 4099) {
             projection.vertical_unit_key = String(key.wValue_Offset);
         }
+        
+
     }
     if (!projection.convert_to_wgs84) {
         console.log("did not find projection");

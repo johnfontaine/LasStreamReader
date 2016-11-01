@@ -156,6 +156,23 @@ function VariableLengthRecordHeader(buffer) {
     this.description = get_char_array(buffer, position, 32);
     this.record_length = this.length_after_header + 54;
     this.data = buffer.slice(54, this.record_length);
+    if (String(this.record_id) === '34736' ) { //GeoDoubleParamsTag
+        this.double_params = new Float64Array(this.data);
+    } else if (String(this.record_id) === '34767') { //GeoAsciiParamsTag
+        let char_aray =  new Uint8Array(this.data);
+        this.string_params = [];
+        let i = 0;
+        this.string_params[0] = '';
+        for (let x of char_array) {
+            if (Number(x) === 0) {
+                i++;
+                this.string_params[i] = '';
+            } else {
+                this.string_params[i] = this.string_params[i] + String.fromCharCode(x);
+            }
+        }
+
+    }
 
 }
 VariableLengthRecordHeader.prototype.is_projection = function() {
@@ -188,6 +205,11 @@ function GeoKey(buffer) {
         key.wKeyId = dataView.getUint16(position, true);
         position += 2;
         key.wTIFFTagLocation  = dataView.getUint16(position, true);
+        if (key.wTIFFTagLocation == 34736) {
+
+        } else if (key.wTIFFTagLocation == 34767) {
+
+        }
         position += 2;
         key.wCount = dataView.getUint16(position, true);
         position += 2;
