@@ -49,6 +49,7 @@ function Header(buffer) {
     position += 2;
     this.offset_to_point_data = dataView.getUint32(position, true);
     position += 4;
+    console.log("*****gettting variable length records: " + position + " " +  dataView.getUint32(position, true));
     this.number_of_variable_length_records =  dataView.getUint32(position, true);
     position += 4;
     this.point_data_record = {};
@@ -235,7 +236,7 @@ function PointRecord(buffer, header, point_record_options, projection) {
         computeScaled(this.raw[1], header.scale[1], header.offset[1]),
         computeScaled(this.raw[2], header.scale[2], header.offset[2]),
     ];
-    if (point_record_options.transform_lnglat && projection.convert_to_wgs84) {
+    if (point_record_options.transform_lnglat && projection && projection.convert_to_wgs84) {
         this.lng_lat = projection.convert_to_wgs84.forward(this.scaled.slice(0,2));
     }
 

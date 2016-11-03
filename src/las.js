@@ -91,21 +91,17 @@ class LasStreamReader extends stream.Transform {
         }
         let vlr_remain =  this.vlr_buffer.length - this.vlr_bytes_read;
         if (vlr_remain === 0) {
-            //console.log("getting variable length records",this.header.number_of_variable_length_records);
             this.vlr = [];
             let last_vlr_offset = 0;
             for (let i = 0; i < this.header.number_of_variable_length_records; i++) {
-            //    console.log("last_vlr_offset is", last_vlr_offset);
                 let d = this.vlr_buffer.buffer.slice(last_vlr_offset);
-                //console.log(d.toString('utf8', 0, d.length));
-                //console.log(d);
                 let vlr = new models.VariableLengthRecordHeader(d);
 
                 last_vlr_offset += vlr.record_length;
                 this.vlr.push(vlr);
             }
             this.read_vlr = true;
-            if (!this.check_laz) {
+            if (!this.check_laz && this.vlr.length > 0) {
                 let laz_vlr = this.vlr[this.vlr.length-1];
                 this.is_laz = laz_vlr.user_id === 'laszip encoded';
                 this.check_laz = true;
@@ -114,14 +110,21 @@ class LasStreamReader extends stream.Transform {
                     this.emit("onGotLazInfo", JSON.stringify(this.laz_info, null, "\t"));
                 }
             }
+
             if (!this.check_classification_lookup) {
                 check_classification_lookup(this);
             }
             this.emit('onParseVLR', this.vlr);
             if (!this.got_projection) {
-                this.projection = computeProjection(this.vlr);
-                if (this.projection) {
-                    this.emit("onGotProjection", this.projection);
+                if (this.vlr.length === 0) {
+                    this.emit("error", new Error('Unable to determine projection from variable length records'));
+                } else {
+                    this.projection = computeProjection(this.vlr);
+                    if (this.projection && this.projection.convert_to_wgs84) {
+                        this.emit("onGotProjection", this.projection);
+                    } else {
+                        this.emit("error", new Error("invalid projection\n" + JSON.stringify(this.projection, null, " ")));
+                    }
                 }
             }
         }
@@ -149,7 +152,6 @@ class LasStreamReader extends stream.Transform {
             this.save_buffer = null;
         }
         let num_records = parseInt(proc_buffer.byteLength / rec_size);
-        //console.log(`getting ${num_records} records from chunk`);
         let records = [];
         for (let i = 0; i < num_records; i++) {
             let start_rec = i * rec_size;
@@ -206,6 +208,7 @@ function check_classification_lookup(self) {
     }
     self.check_classification_lookup = true;
 }
+
 function computeProjectionWithGeoTag(record,records) {
 //    console.log("record is", record);
     let projection = {convert_to_wgs84 : null};
@@ -219,6 +222,14 @@ function computeProjectionWithGeoTag(record,records) {
     let epsg_code;
     for (let key of geokey.keys) {
         let keyId = Number(key.wKeyId);
+        let tagLocation = Number(key.wTIFFTagLocation);
+        if (tagLocation === 34736) {
+            //34736 means the data is located at index wValue_Offset of the
+            //GeoDoubleParamsTag record.
+        } else {
+            //34767 means the data is located at index wValue_Offset of the
+            //GeoAsciiParamsTag record.
+        }
     //    console.log(`${key.wKeyId}\n\t`, JSON.stringify(key));
         if (keyId === 1024) {
 
@@ -255,12 +266,8 @@ function computeProjectionWithGeoTag(record,records) {
         if (keyId === 4099) {
             projection.vertical_unit_key = String(key.wValue_Offset);
         }
-        
 
-    }
-    if (!projection.convert_to_wgs84) {
-        console.log("did not find projection");
-        //throw new Error("unable to find ESPG code key 3072");
+
     }
     return projection;
 }
