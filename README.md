@@ -11,6 +11,10 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 
 ##Versions
 
+* Version 1.0.2 November 2, 2016
+
+Improved error handling in cases where the projection is not properly included in the variable length records
+
 * Version 1.0 Sept 3, 2016
 * Initial version focused on support for LAS 1.2 files provided by the USGS and US Coast Guard. Note currently expects vertical and horizontal measurements in meters.
 
