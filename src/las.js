@@ -293,7 +293,7 @@ function computeProjectionWithGeoTag(record,records) {
                 projection.epsg_datum = "EPSG:4326";
                 projection.epsg_proj4 = epsg_code;
                 if (projection.linear_unit_key) {
-                    let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                    let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
                     projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
                 }
                 projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326'));
@@ -305,7 +305,7 @@ function computeProjectionWithGeoTag(record,records) {
                 projection.epsg_datum = String(key.wValue_Offset);
                 projection.epsg_proj4 = epsg_code;
                 if (projection.linear_unit_key) {
-                    let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                    let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
                     projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
                 }
                 projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
@@ -318,7 +318,7 @@ function computeProjectionWithGeoTag(record,records) {
             projection.linear_unit_key = String(key.wValue_Offset);
             projection.convert_linear_to_meters =  linear_unit_defs[projection.linear_unit_key];
             if (projection.epsg_proj4) {
-                let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
                 projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
                 projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
             }
