@@ -10,8 +10,8 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 * Detect LAZ compressed files and warn -- future support tbd.
 
 ##Versions
-* Version 1.0.3 December 12, 2016
-
+* Version 1.0.5 December 12, 2016
+Fixed Vertical Unit Projection problem
 Added conversion for vertical units to meters.
 
 * Version 1.0.2 November 2, 2016
