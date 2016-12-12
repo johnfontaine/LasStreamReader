@@ -239,7 +239,9 @@ function PointRecord(buffer, header, point_record_options, projection) {
     if (point_record_options.transform_lnglat && projection && projection.convert_to_wgs84) {
         this.lng_lat = projection.convert_to_wgs84.forward(this.scaled.slice(0,2));
     }
-
+    if (point_record_options.transform_lnglat && projection && projection.convert_elevation_to_meters) {
+      this.elevation = projection.convert_elevation_to_meters(this.scaled[2]);
+    }
     let position = 12;
     this.intensity = dataView.getUint16(position);
     position +=2;

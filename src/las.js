@@ -7,6 +7,47 @@ const proj4 = require("proj4");
 const stream = require('stream');
 const util = require('util');
 
+const linear_unit_defs = {
+  9001 : function(value) {
+    return Number(value);
+    //Linear_Meter
+  },
+  9002 : function(value) {
+    //Linear_Foot
+    return Number(value) * 0.3048;
+  },
+  9003 : function(value) {
+    //Linear_Foot_US_Survey
+    return Number(value) * ( 1200/3937 );
+  },
+  9004 : function(value) {
+    //Linear_Foot_Modified_American =	9004
+    return Number(value) * ( 1200/3937 );
+  },
+  9005 : function(value) {
+    //Linear_Foot_Clarke = 9005
+    return value * 0.3047972654;
+  },
+  9006 : function(value) {
+    //Linear_Foot_Indian =	9006
+    return value * 0.3047995 ;
+  },
+  9007 : function(value) {
+    //Linear_Link =	9007
+    return value * 0.201168;
+  }
+  /* TODO add these mostly unused units of measure.
+  Linear_Link_Benoit =	9008
+  Linear_Link_Sears =	9009
+  Linear_Chain_Benoit =	9010
+  Linear_Chain_Sears =	9011
+  Linear_Yard_Sears =	9012
+  Linear_Yard_Indian =	9013
+  Linear_Fathom =	9014
+  Linear_Mile_International_Nautical =	9015
+  */
+};
+
 class LasStreamReader extends stream.Transform {
     constructor(options) {
         super({readableObjectMode : true});
@@ -34,7 +75,8 @@ class LasStreamReader extends stream.Transform {
                 this.projection = {
                     epsg_datum :  options.projection.epsg_datum,
                     epsg_code : epsg_code,
-                    convert_to_wgs84 : new proj4(epsg_code, proj4.defs('EPSG:4326'))
+                    convert_to_wgs84 : new proj4(epsg_code, proj4.defs('EPSG:4326')),
+                    convert_elevation_to_meters  : function(value) { return value }
                 };
                 //igore VLR projection data and use this one instead.
                 this.got_projection = true;
@@ -211,7 +253,7 @@ function check_classification_lookup(self) {
 
 function computeProjectionWithGeoTag(record,records) {
 //    console.log("record is", record);
-    let projection = {convert_to_wgs84 : null};
+    let projection = {convert_to_wgs84 : null, convert_elevation_to_meters : function(value) { return value; }};
     let geokey = new models.GeoKey(record.data);
     projection.geokey = geokey;
 //    console.log("geokey", geokey);
@@ -265,8 +307,8 @@ function computeProjectionWithGeoTag(record,records) {
         }
         if (keyId === 4099) {
             projection.vertical_unit_key = String(key.wValue_Offset);
+            projection.convert_elevation_to_meters = linear_unit_defs[projection.vertical_unit_key];
         }
-
 
     }
     return projection;
