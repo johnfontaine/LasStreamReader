@@ -48,6 +48,12 @@ const linear_unit_defs = {
   */
 };
 
+const proj4_linear_units_def = {
+  9001 : "m",
+  9002 : 'ft',
+  9003 : "us-ft"
+};
+
 class LasStreamReader extends stream.Transform {
     constructor(options) {
         super({readableObjectMode : true});
@@ -253,7 +259,11 @@ function check_classification_lookup(self) {
 
 function computeProjectionWithGeoTag(record,records) {
 //    console.log("record is", record);
-    let projection = {convert_to_wgs84 : null, convert_elevation_to_meters : function(value) { return value; }};
+    let projection = {
+      convert_to_wgs84 : null,
+      convert_elevation_to_meters : function(value) { return value; },
+      convert_linear_to_meters : function(value) { return value; }
+    };
     let geokey = new models.GeoKey(record.data);
     projection.geokey = geokey;
 //    console.log("geokey", geokey);
@@ -282,15 +292,23 @@ function computeProjectionWithGeoTag(record,records) {
                 epsg_code = epsg[String(4326)];
                 projection.epsg_datum = "EPSG:4326";
                 projection.epsg_proj4 = epsg_code;
-                projection.convert_to_wgs84 = new proj4(epsg_code, proj4.defs('EPSG:4326'));
+                if (projection.linear_unit_key) {
+                    let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                    projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
+                }
+                projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326'));
             }
         }
         if (keyId === 3072) {
-            epsg_code = epsg[String(key.wValue_Offset)];
+            epsg_code = String(epsg[String(key.wValue_Offset)]);
             if (epsg_code && epsg_code !== "unknown") {
                 projection.epsg_datum = String(key.wValue_Offset);
                 projection.epsg_proj4 = epsg_code;
-                projection.convert_to_wgs84 = new proj4(epsg_code, proj4.defs('EPSG:4326')); //to
+                if (projection.linear_unit_key) {
+                    let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                    projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
+                }
+                projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
             } else {
                 let offset = key.wValue_Offset;
                 throw new Error(`unable to compute projection for epsg code ${offset}`);
@@ -298,6 +316,12 @@ function computeProjectionWithGeoTag(record,records) {
         }
         if (keyId === 3076) {  //linearUnits key
             projection.linear_unit_key = String(key.wValue_Offset);
+            projection.convert_linear_to_meters =  linear_unit_defs[projection.linear_unit_key];
+            if (projection.epsg_proj4) {
+                let replace_units = "+units=" + proj4_linear_units[projection.linear_unit_key];
+                projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
+                projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
+            }
         }
 
         //VerticalCSTypeGeoKey
