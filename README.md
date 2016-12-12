@@ -152,7 +152,8 @@ These map to the
 ####Properties
 * raw -- an array (xyz) of the unscaled integers
 * scaled -- an array (xyz) of floats computed with the offset and scale for the raw points
-* this.lng_lat -- an array (longitude, latitude) of floats for the WGS84 coordinates
+* lng_lat -- an array (longitude, latitude) of floats for the WGS84 coordinates
+* elevation -- scaled elevation in meters as float
 * intensity
 * return_number
 * number_of_returns
