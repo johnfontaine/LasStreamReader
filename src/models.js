@@ -49,7 +49,7 @@ function Header(buffer) {
     position += 2;
     this.offset_to_point_data = dataView.getUint32(position, true);
     position += 4;
-    console.log("*****gettting variable length records: " + position + " " +  dataView.getUint32(position, true));
+  //  console.log("*****gettting variable length records: " + position + " " +  dataView.getUint32(position, true));
     this.number_of_variable_length_records =  dataView.getUint32(position, true);
     position += 4;
     this.point_data_record = {};
