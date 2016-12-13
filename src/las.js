@@ -308,10 +308,16 @@ function computeProjectionWithGeoTag(record,records) {
                     let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
                     projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
                 }
-                projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
+                try {
+                  projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
+                } catch(error) {
+                  console.log("error building projection");
+                  console.log("projection", JSON.stringify(projection, null, " "));
+                  this.emit("error", new Error(`error building projection ${error}`));
+                }
             } else {
                 let offset = key.wValue_Offset;
-                throw new Error(`unable to compute projection for epsg code ${offset}`);
+                this.emit("error", new Error(`unable to compute projection for epsg code ${offset}`));
             }
         }
         if (keyId === 3076) {  //linearUnits key
