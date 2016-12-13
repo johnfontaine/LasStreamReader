@@ -167,7 +167,7 @@ class LasStreamReader extends stream.Transform {
                 if (this.vlr.length === 0) {
                     this.emit("error", new Error('Unable to determine projection from variable length records'));
                 } else {
-                    this.projection = computeProjection(this.vlr);
+                    this.projection = computeProjection(this, this.vlr);
                     if (this.projection && this.projection.convert_to_wgs84) {
                         this.emit("onGotProjection", this.projection);
                     } else {
@@ -229,7 +229,7 @@ function fill_to_buffer(in_buffer, fill_buffer, filled) {
     return filled;
 }
 
-function computeProjection(records) { //variable length records
+function computeProjection(obj, records) { //variable length records
     for (let record of records) {
         if (record.is_projection()) {
             switch(Number(record.record_id)) {
@@ -241,7 +241,7 @@ function computeProjection(records) { //variable length records
                     //throw new Error("OGC COORDINATE SYSTEM WKT record not supported");
                     break;
                 case 34735:
-                    return computeProjectionWithGeoTag(record, records);
+                    return computeProjectionWithGeoTag(obj,record, records);
                     //GEOTiff
             }
         }
@@ -257,7 +257,7 @@ function check_classification_lookup(self) {
     self.check_classification_lookup = true;
 }
 
-function computeProjectionWithGeoTag(record,records) {
+function computeProjectionWithGeoTag(obj, record,records) {
 //    console.log("record is", record);
     let projection = {
       convert_to_wgs84 : null,
@@ -313,11 +313,11 @@ function computeProjectionWithGeoTag(record,records) {
                 } catch(error) {
                   console.log("error building projection");
                   console.log("projection", JSON.stringify(projection, null, " "));
-                  this.emit("error", new Error(`error building projection ${error}`));
+                  obj.emit("error", new Error(`error building projection ${error}`));
                 }
             } else {
                 let offset = key.wValue_Offset;
-                this.emit("error", new Error(`unable to compute projection for epsg code ${offset}`));
+                obj.emit("error", new Error(`unable to compute projection for epsg code ${offset}`));
             }
         }
         if (keyId === 3076) {  //linearUnits key
