@@ -1,4 +1,5 @@
 /*jshint esversion: 6*/
+const geotiff = require("./geotiff.json");
 const Uint64LE = require("int64-buffer").Uint64LE;
 const Int64LE = require("int64-buffer").Int64LE;
 function get_char_array(buffer, offset, length) {
@@ -49,7 +50,6 @@ function Header(buffer) {
     position += 2;
     this.offset_to_point_data = dataView.getUint32(position, true);
     position += 4;
-  //  console.log("*****gettting variable length records: " + position + " " +  dataView.getUint32(position, true));
     this.number_of_variable_length_records =  dataView.getUint32(position, true);
     position += 4;
     this.point_data_record = {};
@@ -157,24 +157,26 @@ function VariableLengthRecordHeader(buffer) {
     this.description = get_char_array(buffer, position, 32);
     this.record_length = this.length_after_header + 54;
     this.data = buffer.slice(54, this.record_length);
-    if (String(this.record_id) === '34736' ) { //GeoDoubleParamsTag
-        this.double_params = new Float64Array(this.data);
-    } else if (String(this.record_id) === '34767') { //GeoAsciiParamsTag
-        let char_aray =  new Uint8Array(this.data);
-        this.string_params = [];
-        let i = 0;
-        this.string_params[0] = '';
-        for (let x of char_array) {
-            if (Number(x) === 0) {
-                i++;
-                this.string_params[i] = '';
-            } else {
-                this.string_params[i] = this.string_params[i] + String.fromCharCode(x);
+    if (String(this.user_id) == 'LASF_Projection') {
+      if (String(this.record_id) === '34736' ) { //GeoDoubleParamsTag
+          this.double_params = new Float64Array(this.data);
+      } else if (
+        String(this.record_id) === '34767'
+        || String(this.record_id) === '34737'
+        || String(this.record_id) === '2111'
+        || String(this.record_id) === '2112'
+      ) { //GeoAsciiParamsTag
+        let array = new Uint8Array(this.data);
+        this.ascii_data = "";
+        for (let x of array) {
+            let code = String.fromCharCode(x);
+            if (code != '\u0000') {
+              this.ascii_data += code;
             }
         }
+      }
 
     }
-
 }
 VariableLengthRecordHeader.prototype.is_projection = function() {
     return this.user_id.startsWith("LASF_Projection");
@@ -189,37 +191,120 @@ VariableLengthRecordHeader.prototype.is_extra_bytes = function() {
     return this.user_id.startsWith("LASF_Spec") && Number(this.record_id) === 4;
 };
 
-function GeoKey(buffer) {
-    let dataView = new DataView(buffer);
-    let position = 0;
-    this.wKeyDirectoryVersion = dataView.getUint16(position, true);
-    position += 2;
-    this.wKeyRevision = dataView.getUint16(position, true);
-    position += 2;
-    this.wMinorRevision = dataView.getUint16(position, true);
-    position += 2;
-    this.wNumberOfKeys = Number(dataView.getUint16(position, true));
-    position += 2;
-    this.keys = [];
-    for (let i = 0; i < this.wNumberOfKeys; i++) {
-        let key = {};
-        key.wKeyId = dataView.getUint16(position, true);
-        position += 2;
-        key.wTIFFTagLocation  = dataView.getUint16(position, true);
-        if (key.wTIFFTagLocation == 34736) {
+function GeoKey(records) {
+    this.has_epsg_projection =false
+    this.extractKeys(records);
+}
+GeoKey.prototype.hasKey = function(key) {
+  return typeof this.key[String(key)] !== 'undefined';
+}
+GeoKey.prototype.getKey = function(key) {
+    return this.key[String(key)];
+}
 
-        } else if (key.wTIFFTagLocation == 34767) {
+GeoKey.prototype.extractKeys = function(records) {
+  let dataView = new DataView(records['34735'].data);
+  let position = 0;
+  this.wKeyDirectoryVersion = dataView.getUint16(position, true);
+  position += 2;
+  this.wKeyRevision = dataView.getUint16(position, true);
+  position += 2;
+  this.wMinorRevision = dataView.getUint16(position, true);
+  position += 2;
+  this.wNumberOfKeys = Number(dataView.getUint16(position, true));
+  position += 2;
+  this.key = {};
+  for (let i = 0; i < this.wNumberOfKeys; i++) {
+      let key = {};
+      key.wKeyId = dataView.getUint16(position, true);
+      position += 2;
+      key.wTIFFTagLocation  = dataView.getUint16(position, true);
 
-        }
-        position += 2;
-        key.wCount = dataView.getUint16(position, true);
-        position += 2;
-        key.wValue_Offset  = dataView.getUint16(position, true);
-        position += 2;
-        this.keys.push(key);
+      position += 2;
+      key.wCount = dataView.getUint16(position, true);
+      position += 2;
+      key.wValue_Offset  = dataView.getUint16(position, true);
+      position += 2;
+      if (key.wTIFFTagLocation == 34736) {
+        key.value = records['34736'].double_params[key.wValue_Offset];
+      } else if (key.wTIFFTagLocation == 34737) {
+        key.value = records['34737'].ascii_data.substr(Number(key.wValue_Offset), Number(key.wValue_Offset)+Number(key.wCount)-1);
+      } else {
+        key.value = key.wValue_Offset;
+      }
+      this.key[String(key.wKeyId)] = key;
+  }
+  if (this.hasKey(3072)) {
+    let epsg_projection_code = Number(this.getKey(3072));
+    if (epsg_projection_code < 32761) {
+      this.epsg_projection_code = epsg_projection_code;
+      this.has_epsg_projection = true;
     }
+  }
+  this.mapGeotiff();
+}
+GeoKey.prototype.mapGeotiff = function() {
+  this.geotiff = {};
+  this.proj4_values = {};
+
+  for (let key of Object.keys(geotiff.codes)) {
+      let code = geotiff.codes[key];
+      this.geotiff[code.key] = "NOT_PROVIDED";
+    if (this.hasKey(key)) {
+
+
+      if (geotiff.reference[code.type] && typeof geotiff.reference[code.type][String(this.getKey(key).value)] !== 'undefined') {
+          if (code.proj_key && geotiff.reference[code.type][String(this.getKey(key).value)].proj) {
+            this.proj4_values[code.proj_key] = geotiff.reference[code.type][String(this.getKey(key).value)].proj;
+          }
+          this.geotiff[code.key] = geotiff.reference[code.type][String(this.getKey(key).value)].value;
+
+      } else {
+        if (code.proj_key) {
+          this.proj4_values[code.proj_key] = this.getKey(key).value;
+        }
+        this.geotiff[code.key] = this.getKey(key).value;
+      }
+      if (this.proj4_values[code.proj_key] == 32767) {
+        delete this.proj4_values[code.proj_key];
+      }
+    }
+  }
+  for (let key of Object.keys(geotiff.codes)) {
+      let code = geotiff.codes[key];
+      if (code.type == 'ProjLinearUnits' && code.proj_key && this.proj4_values[code.proj_key]) {
+        if(this.proj4_values["+to_meter"]) {
+           this.proj4_values[code.proj_key] = Number( this.proj4_values[code.proj_key]) * Number(this.proj4_values["+to_meter"]);
+        } else if (this.proj4_values["+units"] && this.proj4_values["+units"] != 'm' ) {
+          switch (this.proj4_values["+units"] ) {
+            case "ft" :
+              this.proj4_values[code.proj_key] = Number( this.proj4_values[code.proj_key]) * 0.3048;
+              break;
+            case "us-ft" :
+              this.proj4_values[code.proj_key] = Number( this.proj4_values[code.proj_key]) *  0.3048006096;
+              break;
+            default:
+              break;
+          }
+        }
+      }
+  }
 
 }
+GeoKey.prototype.computeProj4Args = function() {
+  let result = "";
+  if(this.geotiff["GTModelTypeGeoKey"] ===  'ModelTypeProjected') {
+    for (let key of Object.keys(this.proj4_values)) {
+      if (String(this.proj4_values[key]) !== "32767") {
+        //don't try to use user inputted strings
+          result += String(key) +"="+ String(this.proj4_values[key]) + " ";
+      }
+    }
+  }
+  return result;
+}
+
+
 function computeScaled(item, scale, offset) {
   return (item * scale) + offset;
 }
@@ -290,7 +375,7 @@ function ClassificationTable(buffer) {
         let description = get_char_array(buffer, position+1, 15);
         this[String(classNumber)] = description;
     }
-    console.log(this);
+
 }
 // Seehttps://github.com/LASzip/LASzip/blob/master/src/laszip.cpp
 // the data of the LASzip VLR

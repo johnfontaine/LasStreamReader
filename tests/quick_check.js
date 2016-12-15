@@ -3,21 +3,33 @@ const las = require('../src/las.js');
 const Writable = require("stream").Writable;
 const fs = require("fs");
 let x= 0;
-let lasStream = new las.LasStreamReader({ transform_lnglat : true,
-    projection : {epsg_datum : 32616 }
-});
+function compute_bounds(header, projection) {
+  /* header.max_min
+  */
+  console.log("projection", JSON.stringify(lasStream.projection, null, " "));
+  console.log("header ne raw", header.max_min[0][0], header.max_min[1][0]);
+
+  console.log("header ne", lasStream.projection.convert_to_wgs84.forward([ header.max_min[0][0], header.max_min[1][0]]))
+//   console.log("header", JSON.stringify(lasStream.header, null, " "));
+}
+let lasStream = new las.LasStreamReader();
+    lasStream.on("log", (info)=> {
+        console.log(info.level, ":", info.message);
+    });
     lasStream.on("error", (error)=> {
-        console.log("error", error);
+         console.log("error", error);
     });
     lasStream.on("onParseHeader", (header)=>{
-             console.log("onParseHeader", JSON.stringify(header, null, "\t" ));
+        //     console.log("onParseHeader", JSON.stringify(header, null, "\t" ));
      });
      lasStream.on("onParseVLR", (vlr) => {
-         console.log("onParseVLR", JSON.stringify(vlr, null, "\t" ));
+      //   console.log("onParseVLR", JSON.stringify(vlr, null, "\t" ));
 
      });
      lasStream.on("onGotProjection", (projection)=> {
-         console.log("onGotProjection", JSON.stringify(projection));
+       console.log("onGotProjection");
+       compute_bounds(lasStream.header, projection);
+    //     console.log("onGotProjection", JSON.stringify(projection, null, "\t"));
         //  if (projection.convert_to_wgs84 === null) {
         //      projection.epsg_datum = "EPSG:4326";
         //      projection.epsg_proj4 = '+proj=utm +zone=16 +ellps=WGS84 +datum=WGS84 +units=m +no_defs';
@@ -57,5 +69,5 @@ class TestWritable extends Writable {
   }
 }
 
-const rs = fs.createReadStream("tests/sample_data/AL_ElmoreCo_2010_000136.las", {autoClose : true});
+const rs = fs.createReadStream("tests/sample_data/ARRA-MI_4SECounties_2010_000011.laz", {autoClose : true});
 rs.pipe(lasStream).pipe(new TestWritable());

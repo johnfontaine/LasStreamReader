@@ -10,7 +10,12 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 * Detect LAZ compressed files and warn -- future support tbd.
 
 ##Versions
+* Version 1.0.12
+Updated Parser with support for PROJCS WKT and better GEOTiff support
+
+
 * Version 1.0.5 December 12, 2016
+
 Fixed Vertical Unit Projection problem
 Added conversion for vertical units to meters.
 

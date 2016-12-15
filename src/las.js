@@ -6,7 +6,40 @@ const epsg = require("./epsg.json");
 const proj4 = require("proj4");
 const stream = require('stream');
 const util = require('util');
+const wkt_parser = require("./wkt_parser.js");
+const coordinate_transform_defs = {
+  "1": "+proj=utm", //CT_TransverseMercator
+  "3": "+proj=omerc +lat_1+45 +lat_2=55", //CT_ObliqueMercator
+  "4": "+proj=labrd", //   CT_ObliqueMercator_Laborde
+  "7": "+proj=merc",
+  "8": "+proj=lcc", //CT_LambertConfConic_2SP
+  "10": "+proj=laea"
 
+
+/*
+CT_TransvMercator_Modified_Alaska = 2
+   CT_ObliqueMercator_Rosenmund =	5
+   CT_ObliqueMercator_Spherical =	6
+   CT_LambertConfConic_Helmert =	9
+   CT_AlbersEqualArea =	11
+   CT_AzimuthalEquidistant =	12
+   CT_EquidistantConic =	13
+   CT_Stereographic =	14
+   CT_PolarStereographic =	15
+   CT_ObliqueStereographic =	16
+   CT_Equirectangular =	17
+   CT_CassiniSoldner =	18
+   CT_Gnomonic =	19
+   CT_MillerCylindrical =	20
+   CT_Orthographic =	21
+   CT_Polyconic =	22
+   CT_Robinson =	23
+   CT_Sinusoidal =	24
+   CT_VanDerGrinten =	25
+   CT_NewZealandMapGrid =	26
+   CT_TransvMercator_SouthOriented=	27
+*/
+}
 const linear_unit_defs = {
   9001 : function(value) {
     return Number(value);
@@ -139,14 +172,18 @@ class LasStreamReader extends stream.Transform {
         }
         let vlr_remain =  this.vlr_buffer.length - this.vlr_bytes_read;
         if (vlr_remain === 0) {
-            this.vlr = [];
+            this.vlr = {};
             let last_vlr_offset = 0;
             for (let i = 0; i < this.header.number_of_variable_length_records; i++) {
                 let d = this.vlr_buffer.buffer.slice(last_vlr_offset);
                 let vlr = new models.VariableLengthRecordHeader(d);
 
                 last_vlr_offset += vlr.record_length;
-                this.vlr.push(vlr);
+                if (!this.vlr[String(vlr.user_id)]) {
+                  this.vlr[String(vlr.user_id)] = {};
+                }
+                this.vlr[vlr.user_id][String(vlr.record_id)] = vlr;
+                //this.vlr.push(vlr);
             }
             this.read_vlr = true;
             if (!this.check_laz && this.vlr.length > 0) {
@@ -164,11 +201,17 @@ class LasStreamReader extends stream.Transform {
             }
             this.emit('onParseVLR', this.vlr);
             if (!this.got_projection) {
-                if (this.vlr.length === 0) {
+                if (!this.vlr['LASF_Projection']) {
                     this.emit("error", new Error('Unable to determine projection from variable length records'));
                 } else {
                     this.projection = computeProjection(this, this.vlr);
                     if (this.projection && this.projection.convert_to_wgs84) {
+
+                      let ne = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
+                      let sw = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
+                      this.projection.bounds = [
+                        sw, ne
+                      ];
                         this.emit("onGotProjection", this.projection);
                     } else {
                         this.emit("error", new Error("invalid projection\n" + JSON.stringify(this.projection, null, " ")));
@@ -230,122 +273,101 @@ function fill_to_buffer(in_buffer, fill_buffer, filled) {
 }
 
 function computeProjection(obj, records) { //variable length records
-    for (let record of records) {
-        if (record.is_projection()) {
-            switch(Number(record.record_id)) {
-                case 2111:
-                    //OGC MATH TRANSFORM WKT RECORD:
-                    //throw new Error("GC MATH TRANSFORM WKT RECORD record not supported");
-                case 2112:
-                    //OGC COORDINATE SYSTEM WKT
-                    //throw new Error("OGC COORDINATE SYSTEM WKT record not supported");
-                    break;
-                case 34735:
-                    return computeProjectionWithGeoTag(obj,record, records);
-                    //GEOTiff
-            }
+    if(records['LASF_Projection']) {
+      if (records['LASF_Projection']['34735']) {
+        return computeProjectionWithGeoTag(obj,records['LASF_Projection']);
+      } else if (records['LASF_Projection']['2111']) {
+        obj.emit("error", new Error("Math WKT transform not supported"));
+      } else if (records['LASF_Projection']['2112']) {
+        let projection = {
+          target_proj : proj4.defs('EPSG:4326'),
+          got_projection : true,
+          wkt : records['LASF_Projection']['2112'].ascii_data,
+          parse_wkt : wkt_parser(records['LASF_Projection']['2112'].ascii_data),
+          convert_to_wgs84 : null,
+          convert_elevation_to_meters : function(value) { return value; },
+          convert_linear_to_meters : function(value) { return value; }
+        };
+        if (projection.parse_wkt.PROJCS && projection.parse_wkt.PROJCS.UNIT && projection.parse_wkt.PROJCS.UNIT.name != 'meter') {
+          projection.convert_elevation_to_meters = function(value) {
+            return value * Number(projection.parse_wkt.PROJCS.UNIT.value);
+          }
         }
+        try {
+          projection.convert_to_wgs84 = new proj4(projection.wkt, projection.target_proj); //to
+          projection.got_projection = true;
+          return projection;
+        } catch(error) {
+          obj.emit("log", { level : 'error', message: "error building projection: " +  JSON.stringify(projection, null, " ")});
+          obj.emit("error", new Error(`error building projection from wkt ${error}`));
+        }
+        //obj.emit("error", new Error("WKT projection not supported"))
+      }
     }
-
+    return;
 }
 function check_classification_lookup(self) {
-    for (let vlr of self.vlr) {
-        if (vlr.record_id === 0 && vlr.user_id === 'LASF_Spec') {
-            self.classification_table = new models.ClassificationTable(vlr.data);
-        }
+    if (self.vlr['LASF_Spec'] && self.vlr['LASF_Spec']['0']) {
+        self.classification_table = new models.ClassificationTable(self.vlr['LASF_Spec']['0']);
     }
     self.check_classification_lookup = true;
 }
 
-function computeProjectionWithGeoTag(obj, record,records) {
+function computeProjectionWithGeoTag(obj, projection_records) {
 //    console.log("record is", record);
     let projection = {
+      codes : {},
+      got_projection : false,
       convert_to_wgs84 : null,
+      target_proj : proj4.defs('EPSG:4326'),
       convert_elevation_to_meters : function(value) { return value; },
       convert_linear_to_meters : function(value) { return value; }
     };
-    let geokey = new models.GeoKey(record.data);
+    let geokey = new models.GeoKey(projection_records);
     projection.geokey = geokey;
-//    console.log("geokey", geokey);
     //get the EPSG code held in key 3072 or throw an error because this file lacks common decency.
     //See http://gis.stackexchange.com/questions/173111/converting-geotiff-projection-definition-to-proj4
     //todo: other projection options.
     //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.3.1
     let epsg_code;
-    for (let key of geokey.keys) {
-        let keyId = Number(key.wKeyId);
-        let tagLocation = Number(key.wTIFFTagLocation);
-        if (tagLocation === 34736) {
-            //34736 means the data is located at index wValue_Offset of the
-            //GeoDoubleParamsTag record.
+    //check for Unit code
+    if (geokey.has_epsg_projection) {
+        epsg_code = String(epsg[String(geokey.epsg_projection_code)]);
+        if (epsg_code && epsg_code !== "unknown") {
+            projection.epsg_proj4 = epsg_code;
+            projection.epsg_datum = geokey.epsg_projection_code;
+            if (projection.geokey.proj4_values["+units"] != "m") {
+              projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", "+units=" + projection.geokey.proj4_values["+units"])
+            }
+            projection.got_projection = true;
         } else {
-            //34767 means the data is located at index wValue_Offset of the
-            //GeoAsciiParamsTag record.
+          obj.emit("log", { level : 'info', message: "failed to determine epsg_projection from code: " + geokey.epsg_projection_code });
         }
-    //    console.log(`${key.wKeyId}\n\t`, JSON.stringify(key));
-        if (keyId === 1024) {
+    }
+    if (!projection.got_projection) {
+        projection.epsg_proj4 = geokey.computeProj4Args();
+        projection.got_projection = true;
+    }
+    try {
+      projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, projection.target_proj); //to
+      projection.got_projection = true;
+    } catch(error) {
+      obj.emit("log", { level : 'error', message: "error building projection: " +  JSON.stringify(projection, null, " ")});
+      obj.emit("error", new Error(`error building projection ${error}`));
+      return;
+    }
 
-        //    console.log("Model type key", key.wValue_Offset);
-        }
-        if (keyId === 2048) {
-            if (key.wValue_Offset == 4326) {
-                epsg_code = epsg[String(4326)];
-                projection.epsg_datum = "EPSG:4326";
-                projection.epsg_proj4 = epsg_code;
-                if (projection.linear_unit_key) {
-                    let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
-                    projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
-                }
-                projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326'));
-            }
-        }
-        if (keyId === 3072) {
-            epsg_code = String(epsg[String(key.wValue_Offset)]);
-            if (epsg_code && epsg_code !== "unknown") {
-                projection.epsg_datum = String(key.wValue_Offset);
-                projection.epsg_proj4 = epsg_code;
-                if (projection.linear_unit_key) {
-                    let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
-                    projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
-                }
-                try {
-                  projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
-                } catch(error) {
-                  console.log("error building projection");
-                  console.log("projection", JSON.stringify(projection, null, " "));
-                  obj.emit("error", new Error(`error building projection ${error}`));
-                }
-            } else {
-                let offset = key.wValue_Offset;
-                obj.emit("error", new Error(`unable to compute projection for epsg code ${offset}`));
-            }
-        }
-        if (keyId === 3076) {  //linearUnits key
-            projection.linear_unit_key = String(key.wValue_Offset);
-            projection.convert_linear_to_meters =  linear_unit_defs[projection.linear_unit_key];
-            if (projection.epsg_proj4) {
-                let replace_units = "+units=" + proj4_linear_units_def[projection.linear_unit_key];
-                projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", replace_units);
-                try {
-                  projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, proj4.defs('EPSG:4326')); //to
-                } catch(error) {
-                  console.log("error building projection");
-                  console.log("projection", JSON.stringify(projection, null, " "));
-                  obj.emit("error", new Error(`error building projection ${error}`));
-                }
-            }
-        }
+    //VerticalCSTypeGeoKey
+    //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.4.1
 
-        //VerticalCSTypeGeoKey
-        //http://www.remotesensing.org/geotiff/spec/geotiff6.html#6.3.4.1
-        if (keyId === 4096) {
-            projection.epsg_vertical_datum = key.wValue_Offset;
-        }
-        if (keyId === 4099) {
-            projection.vertical_unit_key = String(key.wValue_Offset);
-            projection.convert_elevation_to_meters = linear_unit_defs[projection.vertical_unit_key];
-        }
-
+    if (geokey.key[String("4096")]) {
+      let key = geokey.key[String("4096")];
+      projection.epsg_vertical_datum = key.wValue_Offset;
+    }
+    if (geokey.key[String("4099")]) {
+        let key = geokey.key[String("4099")];
+        projection.vertical_unit_key = String(key.wValue_Offset);
+        projection.convert_elevation_to_meters = linear_unit_defs[projection.vertical_unit_key];
     }
     return projection;
 }
