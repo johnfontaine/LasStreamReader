@@ -188,7 +188,6 @@ class LasStreamReader extends stream.Transform {
             this.read_vlr = true;
             if (!this.check_laz) {
                 if (this.vlr['laszip encoded'] && this.vlr['laszip encoded']['22204']) {
-                  console.log(this.vlr['laszip encoded']['22204']);
                   this.vlr['laszip encoded'].laz_info = new models.LazZipVlr(this.vlr['laszip encoded']['22204'].data);
                   this.is_laz = this.emit("onGotLazInfo", this.vlr['laszip encoded'].laz_info);
                 };
