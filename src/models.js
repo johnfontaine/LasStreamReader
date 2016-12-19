@@ -157,6 +157,7 @@ function VariableLengthRecordHeader(buffer) {
     this.description = get_char_array(buffer, position, 32);
     this.record_length = this.length_after_header + 54;
     this.data = buffer.slice(54, this.record_length);
+
     if (String(this.user_id) == 'LASF_Projection') {
       if (String(this.record_id) === '34736' ) { //GeoDoubleParamsTag
           this.double_params = new Float64Array(this.data);

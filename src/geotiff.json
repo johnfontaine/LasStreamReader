@@ -18,7 +18,7 @@
       "2060" : { "key": "GeogAzimuthUnitsGeoKey" ,  "type" : "Section 6.3.1.4 codes" },
       "2061" : { "key": "GeogPrimeMeridianLongGeoKey" ,  "type" : "GeogAngularUnit" },
       "3072" : { "key": "ProjectedCSTypeGeoKey" ,  "type" : "Section 6.3.3.1 codes", "proj_key" : "+zone" },
-      "3073" : { "key": "PCSCitationGeoKey" ,  "type" : "documentation", "proj_key" : "+title" },
+      "3073" : { "key": "PCSCitationGeoKey" ,  "type" : "documentation" },
       "3074" : { "key": "ProjectionGeoKey" ,  "type" : "Section 6.3.3.2 codes" },
       "3075" : { "key": "ProjCoordTransGeoKey" ,  "type" : "Section 6.3.3.3 codes", "proj_key" : "+proj" },
       "3076" : { "key": "ProjLinearUnitsGeoKey" ,  "type" : "Section 6.3.1.3 codes", "proj_key" : "+units" },
@@ -1737,7 +1737,7 @@
             "19912" : { "value" : "Proj_RSO_Borneo", "comment" : "" }
     },
     "Section 6.3.3.3 codes" : {
-            "1" : { "value" : "CT_TransverseMercator", "comment" : "", "proj" : "utm" },
+            "1" : { "value" : "CT_TransverseMercator", "comment" : "", "proj" : "tmerc" },
             "2" : { "value" : "CT_TransvMercator_Modified_Alaska", "comment" : "" },
             "3" : { "value" : "CT_ObliqueMercator", "comment" : "" },
             "4" : { "value" : "CT_ObliqueMercator_Laborde", "comment" : "" },

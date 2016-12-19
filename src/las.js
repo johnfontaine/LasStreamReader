@@ -186,14 +186,13 @@ class LasStreamReader extends stream.Transform {
                 //this.vlr.push(vlr);
             }
             this.read_vlr = true;
-            if (!this.check_laz && this.vlr.length > 0) {
-                let laz_vlr = this.vlr[this.vlr.length-1];
-                this.is_laz = laz_vlr.user_id === 'laszip encoded';
+            if (!this.check_laz) {
+                if (this.vlr['laszip encoded'] && this.vlr['laszip encoded']['22204']) {
+                  console.log(this.vlr['laszip encoded']['22204']);
+                  this.vlr['laszip encoded'].laz_info = new models.LazZipVlr(this.vlr['laszip encoded']['22204'].data);
+                  this.is_laz = this.emit("onGotLazInfo", this.vlr['laszip encoded'].laz_info);
+                };
                 this.check_laz = true;
-                if (this.is_laz) {
-                    this.laz_info = new models.LazZipVlr(laz_vlr.data);
-                    this.emit("onGotLazInfo", JSON.stringify(this.laz_info, null, "\t"));
-                }
             }
 
             if (!this.check_classification_lookup) {
@@ -206,13 +205,17 @@ class LasStreamReader extends stream.Transform {
                 } else {
                     this.projection = computeProjection(this, this.vlr);
                     if (this.projection && this.projection.convert_to_wgs84) {
+                      try {
+                        let ne = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
+                        let sw = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
+                        this.projection.bounds = [
+                          sw, ne
+                        ];
+                          this.emit("onGotProjection", this.projection);
 
-                      let ne = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
-                      let sw = this.projection.convert_to_wgs84.forward([ this.header.max_min[0][1], this.header.max_min[1][1] ]);
-                      this.projection.bounds = [
-                        sw, ne
-                      ];
-                        this.emit("onGotProjection", this.projection);
+                      } catch (error) {
+                        this.emit("error", error);
+                      }
                     } else {
                         this.emit("error", new Error("invalid projection\n" + JSON.stringify(this.projection, null, " ")));
                     }

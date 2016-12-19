@@ -8,11 +8,14 @@ function compute_bounds(header, projection) {
   */
   console.log("projection", JSON.stringify(lasStream.projection, null, " "));
   console.log("header ne raw", header.max_min[0][0], header.max_min[1][0]);
-
   console.log("header ne", lasStream.projection.convert_to_wgs84.forward([ header.max_min[0][0], header.max_min[1][0]]))
 //   console.log("header", JSON.stringify(lasStream.header, null, " "));
 }
 let lasStream = new las.LasStreamReader();
+    lasStream.on("onGotLazInfo", (lasinfo)=> {
+      console.log("got lazInfo");
+      console.log("LazInfo", ":", JSON.stringify(lasinfo, null, " "));
+    });
     lasStream.on("log", (info)=> {
         console.log(info.level, ":", info.message);
     });
@@ -29,6 +32,7 @@ let lasStream = new las.LasStreamReader();
      lasStream.on("onGotProjection", (projection)=> {
        console.log("onGotProjection");
        compute_bounds(lasStream.header, projection);
+       console.log("END PROJECTION\n\n\n\n");
     //     console.log("onGotProjection", JSON.stringify(projection, null, "\t"));
         //  if (projection.convert_to_wgs84 === null) {
         //      projection.epsg_datum = "EPSG:4326";
@@ -69,5 +73,5 @@ class TestWritable extends Writable {
   }
 }
 
-const rs = fs.createReadStream("tests/sample_data/ARRA-MI_4SECounties_2010_000011.laz", {autoClose : true});
+const rs = fs.createReadStream("tests/sample_data/ARRA-NE_PlatteRiver_2010_000031.laz", {autoClose : true});
 rs.pipe(lasStream).pipe(new TestWritable());
