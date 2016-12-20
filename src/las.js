@@ -346,7 +346,7 @@ function computeProjectionWithGeoTag(obj, projection_records) {
           obj.emit("log", { level : 'info', message: "failed to determine epsg_projection from code: " + geokey.epsg_projection_code });
         }
     }
-    if (!projection.got_projection) {
+    if (!projection.got_projection && getkey.hasKey(3076)) {
       if (Number(geokey.getKey(3076).value) > 9015 ) {
         epsg_code = String(epsg[String(geokey.getKey(3076).value)]);
         if (epsg_code && epsg_code !== "unknown") {
@@ -355,6 +355,8 @@ function computeProjectionWithGeoTag(obj, projection_records) {
               projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", "+units=" + geokey.getProjValueForKey(2052));
           }
           projection.got_projection = true;
+        } else {
+          obj.emit("log", { level : 'info', message: "failed to determine epsg_projection from ProjLinearUnits custom value: " + getkey.hasKey(3076).value });
         }
       }
     }
