@@ -10,6 +10,9 @@ Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2
 * Detect LAZ compressed files and warn -- future support tbd.
 
 ##Versions
+* Version 1.0.15
+Some special handling for Florida data
+
 * Version 1.0.14
 Fixed bug in CT_TransverseMercator triggering error.
 

@@ -73,5 +73,5 @@ class TestWritable extends Writable {
   }
 }
 
-const rs = fs.createReadStream("tests/sample_data/ARRA-NE_PlatteRiver_2010_000031.laz", {autoClose : true});
+const rs = fs.createReadStream("tests/sample_data/FL_InlandMonroe_2007_000059.laz", {autoClose : true});
 rs.pipe(lasStream).pipe(new TestWritable());

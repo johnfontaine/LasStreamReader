@@ -244,6 +244,21 @@ GeoKey.prototype.extractKeys = function(records) {
   }
   this.mapGeotiff();
 }
+GeoKey.prototype.getProjValueForKey = function(key) {
+  if (!this.hasKey(key)) {
+    return 'NOT_PROVIDED';
+  }
+  let code = geotiff.codes[key];
+  let record_value = this.getKey(key).value;
+  if (geotiff.reference[code.type] && typeof geotiff.reference[code.type][String(this.getKey(key).value)] !== 'undefined') {
+    if (code.proj_key && geotiff.reference[code.type][String(this.getKey(key).value)].proj) {
+        return geotiff.reference[code.type][String(this.getKey(key).value)].proj;
+    }
+    return geotiff.reference[code.type][String(this.getKey(key).value)].value;
+  } else {
+    return this.getKey(key).value;
+  }
+}
 GeoKey.prototype.mapGeotiff = function() {
   this.geotiff = {};
   this.proj4_values = {};
@@ -252,8 +267,6 @@ GeoKey.prototype.mapGeotiff = function() {
       let code = geotiff.codes[key];
       this.geotiff[code.key] = "NOT_PROVIDED";
     if (this.hasKey(key)) {
-
-
       if (geotiff.reference[code.type] && typeof geotiff.reference[code.type][String(this.getKey(key).value)] !== 'undefined') {
           if (code.proj_key && geotiff.reference[code.type][String(this.getKey(key).value)].proj) {
             this.proj4_values[code.proj_key] = geotiff.reference[code.type][String(this.getKey(key).value)].proj;

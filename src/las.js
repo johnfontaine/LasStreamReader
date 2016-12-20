@@ -347,13 +347,27 @@ function computeProjectionWithGeoTag(obj, projection_records) {
         }
     }
     if (!projection.got_projection) {
+      if (Number(geokey.getKey(3076).value) > 9015 ) {
+        epsg_code = String(epsg[String(geokey.getKey(3076).value)]);
+        if (epsg_code && epsg_code !== "unknown") {
+          projection.epsg_proj4  = epsg_code;
+          if (geokey.hasKey(2052) && geokey.getKey(2052).value) {
+              projection.epsg_proj4 = projection.epsg_proj4.replace("+units=m", "+units=" + geokey.getProjValueForKey(2052));
+          }
+          projection.got_projection = true;
+        }
+      }
+    }
+    if (!projection.got_projection) {
         projection.epsg_proj4 = geokey.computeProj4Args();
         projection.got_projection = true;
     }
     try {
       projection.convert_to_wgs84 = new proj4(projection.epsg_proj4, projection.target_proj); //to
       projection.got_projection = true;
+
     } catch(error) {
+      console.log("error", error);
       obj.emit("log", { level : 'error', message: "error building projection: " +  JSON.stringify(projection, null, " ")});
       obj.emit("error", new Error(`error building projection ${error}`));
       return;
