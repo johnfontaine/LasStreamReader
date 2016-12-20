@@ -346,7 +346,7 @@ function computeProjectionWithGeoTag(obj, projection_records) {
           obj.emit("log", { level : 'info', message: "failed to determine epsg_projection from code: " + geokey.epsg_projection_code });
         }
     }
-    if (!projection.got_projection && getkey.hasKey(3076)) {
+    if (!projection.got_projection && geokey.hasKey(3076)) {
       if (Number(geokey.getKey(3076).value) > 9015 ) {
         epsg_code = String(epsg[String(geokey.getKey(3076).value)]);
         if (epsg_code && epsg_code !== "unknown") {
