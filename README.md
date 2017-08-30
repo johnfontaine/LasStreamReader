@@ -2,14 +2,14 @@
 
 Parse LIDAR files in [LAS v1.2 format](http://www.asprs.org/wp-content/uploads/2010/12/asprs_las_format_v12.pdf). Open LAS file to a ReadableStream.
 
-##Current Features
+## Current Features
 
 * Support for Point Data Record Format 0
 * Convert from cartesian coordinates to WGS84 projection when EPSG projection is provided
 * Provides raw x,y,z coordinates and calculates offset and scale.
 * Detect LAZ compressed files and warn -- future support tbd.
 
-##Versions
+## Versions
 * Version 1.0.15
 Some special handling for Florida data
 
@@ -32,9 +32,9 @@ Improved error handling in cases where the projection is not properly included i
 * Version 1.0 Sept 3, 2016
 * Initial version focused on support for LAS 1.2 files provided by the USGS and US Coast Guard. Note currently expects vertical and horizontal measurements in meters.
 
-##Usage
+## Usage
 
-```
+```javascript
 const fs = require("fs");
 const las = require('LasStreamReader');
 const lasStream = new las.LasStream(options);
@@ -67,19 +67,20 @@ rs.pipe(lasStream).pipe(myWritableStream());
 */
 
 ```
-##LasStreamReader Options
+## LasStreamReader Options
 LasStreamReader may be created with the following options passed to the constructor.  
 
-####transform_lnglat
+#### transform_lnglat
 Default: true
 
 When processing points transform the cartesian coordinates (xyz) into wgs84 longitude and latitude using the projection specified
 
-####projection
+#### projection
 Default: use projection specified in the variable length records if available
 Some vendors output LAS 1.2 without the required variable length records indicating the LASF projection.  
-This library uses proj4 to provide the underlying transform.  I have included proj4 strings from http://spatialreference.org/ and stored them in epsg.json
-```
+This library uses proj4 to provide the underlying transform.  I have included proj4 strings from http://spatialreference.org/ and stored them in `epsg.json`
+
+```javascript
 const options = {
     transform_lnglat : true,
     projection : {
@@ -89,37 +90,37 @@ const options = {
 const lasStream = new las.LasStream(options);
 ```
 
-##Events
+## Events
 
-###error
+### error
 
 Emitted when a error occurs.
 
-###onParseHeader
+### onParseHeader
 
 Emitted when LasStreamReader finishes reading the header data for the las file.  Provides a Header object.
 
-###onParseVLR
+### onParseVLR
 
 Emitted when LasStreamReader completes parsing of the variable length records.  Returns an array of VariableLengthRecord objects
 
-###onGotProjection
+### onGotProjection
 
 When a projection is not provided in the constructor, LasStreamReader will attempt to identify the correct projection using the variable length records.  This event fires when that determination is made and provides a Projection object.
 
-###onFinishedReadingRecords
+### onFinishedReadingRecords
 
 When LasStreamReader has parsed all PointRecords this event will fire with a count of records parsed.
 
-##Stream output
+## Stream output
 The ReadableStream sends an array of PointRecords as it reads through the chunks of the file.
 
-##Objects
+## Objects
 
-###Header
+### Header
 See LAS specification for more details
 
-####Properties
+#### Properties
 These map to the
 * file_signature
 * file_source_id
@@ -142,14 +143,14 @@ These map to the
 * offset -- array (xyz)
 * max_min -- array of array (xyz) (maximum, minimum)
 
-####Methods
+#### Methods
 * is_gps_time_type() -- returns true if points will have gps time
 * is_return_numbers_synthetic() -- returns true if this data has synthetic return numbers
 
 
-###VariableLengthRecordHeader
+### VariableLengthRecordHeader
 
-####Properties
+#### Properties
 * reserved
 * user_id
 * record_id
@@ -158,9 +159,9 @@ These map to the
 * record_length
 * data -- if there is extra data this is provided as a Buffer
 
-###PointRecord
+### PointRecord
 
-####Properties
+#### Properties
 * raw -- an array (xyz) of the unscaled integers
 * scaled -- an array (xyz) of floats computed with the offset and scale for the raw points
 * lng_lat -- an array (longitude, latitude) of floats for the WGS84 coordinates
@@ -178,11 +179,11 @@ These map to the
 * point_source_id
 
 
-###Projection
+### Projection
 
-####Properties
+#### Properties
 * epsg_datum : the epsg code that defines the datum for this projection
 * epsg_code : the raw string used to initialize proj4
 
-####Methods
+#### Methods
 * convert_to_wgs84 -- a function used internally to convert the cartesian coordinates to latitude and longitude.
