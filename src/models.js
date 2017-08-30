@@ -1,3 +1,4 @@
+"use strict";
 /*jshint esversion: 6*/
 const geotiff = require("./geotiff.json");
 const Uint64LE = require("int64-buffer").Uint64LE;
