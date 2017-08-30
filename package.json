@@ -30,7 +30,7 @@
   },
   "dependencies": {
     "int64-buffer": "^0.1.9",
-    "proj4": "^2.3.14",
+    "proj4": "^2.4.4",
     "request": "^2.74.0"
   }
 }
